@@ -49,6 +49,7 @@ def dict_json(path):
             elif 'frip_macs2' in dset:
                 dict_epi[k]['FRiP'] = json_f[dset]['rep1']['FRiP']
                 
+    
 
     return dict_epi
 
@@ -71,57 +72,36 @@ def class_cols(df):
     list_idr = []
     list_enrich = []
     list_finger = []
-    list_frip = []
 
     for index, row in df1.iterrows():
 
         #Library complexity conditional
-        if (row['PBC1'] < 0.5) and (row['PBC2'] < 1) and (row['NRF'] < 0.5):
+        if row['PBC1'] < 0.5 and row['PBC2'] < 1 and row['NRF'] < 0.5:
             list_lib_com.append('BAD')
 
-        elif (0.5 <= row['PBC1'] < 0.8) and (1 <= row['PBC2'] < 3) and (0.5 <= row['NRF'] < 0.8):
-            print('ACCEPTABLE PBC1:', row['PBC1'], 'PBC2:',row['PBC2'], 'NRF:', row['NRF'])
-            list_lib_com.append('ACCEPTABLE')
-
-        elif (0.8 <= row['PBC1'] < 0.9) and (3 <= row['PBC2'] < 10) and (0.8 <= row['NRF'] < 0.9):
-            print('GOOD PBC1:', row['PBC1'], 'PBC2:',row['PBC2'], 'NRF:', row['NRF'])
-            list_lib_com.append('GOOD')
-
-        elif (row['PBC1'] >= 0.9) and (row['PBC2'] >= 10) and (row['NRF'] >= 0.9):
-            print('IDEAL PBC1:', row['PBC1'], 'PBC2:',row['PBC2'], 'NRF:', row['NRF'])
-            list_lib_com.append('IDEAL')
-
         else:
-            print('ELSE PBC1:', row['PBC1'], 'PBC2:',row['PBC2'], 'NRF:', row['NRF'])
-            list_lib_com.append('NOT IDENTIFIED')
+            list_lib_com.append('ACCEPTABLE')
 
         #IDR conditional
         if row['reproducibility'] == 'pass':
-            list_idr.append('IDEAL')
+            list_idr.append('ACCEPTABLE')
 
         else:
             list_idr.append('BAD')
 
         #Enrichment conditional
         if row['NSC'] >= 1 and row['RSC'] >= 1: 
-            list_enrich.append('IDEAL')
+            list_enrich.append('ACCEPTABLE')
 
         else:
             list_enrich.append('BAD')
     
         #fingerprint conditional
         if row['JSD'] >= 0.5 : 
-            list_finger.append('IDEAL')
+            list_finger.append('ACCEPTABLE')
 
         else:
             list_finger.append('BAD') 
-
-        #FRiP conditional
-        if row['FRiP'] >= 0.1 : 
-            list_frip.append('IDEAL')
-
-        else:
-            list_frip.append('BAD') 
     
 
     #creating columns
@@ -129,9 +109,8 @@ def class_cols(df):
     df1['IDR'] = list_idr
     df1['Enrichment'] = list_enrich
     df1['Fingerprint'] = list_finger
-    df1['FRiP_quality'] = list_frip
-
-
+    
+    print(len(df1))
     return df1
 
 
@@ -143,28 +122,23 @@ def quality_col(df1):
 
     df2 = df1.copy()
 
-    df2['Quality'] = np.where((df2['Library_complexity'] == 'IDEAL') &
-    (df2['IDR'] == 'IDEAL') &
-    (df2['Enrichment'] == 'IDEAL') &
-    (df2['FRiP_quality'] == 'IDEAL') &
-    (df2['Fingerprint'] == 'IDEAL'), 'IDEAL',
-    np.where((df2['Library_complexity'] == 'GOOD') &
-    (df2['IDR'] == 'IDEAL') &
-    (df2['Enrichment'] == 'IDEAL') &
-    (df2['FRiP_quality'] == 'IDEAL') &
-    (df2['Fingerprint'] == 'IDEAL'), 'GOOD',
-    np.where((df2['Library_complexity'] == 'ACCEPTABLE') &
-    (df2['IDR'] == 'IDEAL') &
-    (df2['Enrichment'] == 'IDEAL') &
-    (df2['FRiP_quality'] == 'IDEAL') &
-    (df2['Fingerprint'] == 'IDEAL'), 'ACCEPTABLE',
-    np.where((df2['Library_complexity'] == 'NOT IDENTIFIED') &
-    (df2['IDR'] == 'IDEAL') &
-    (df2['Enrichment'] == 'IDEAL') &
-    (df2['FRiP_quality'] == 'IDEAL') &
-    (df2['Fingerprint'] == 'IDEAL'), 'TO CHECK', 'BAD'))))
+    df2['Quality'] = np.where(((df2['Library_complexity'] == 'ACCEPTABLE') &  #4
+    (df2['IDR'] == 'ACCEPTABLE') & 
+    (df2['Enrichment'] == 'ACCEPTABLE') & 
+    (df2['Fingerprint'] == 'ACCEPTABLE')) |
+    ((df2['Library_complexity'] == 'ACCEPTABLE') & #3
+    (df2['IDR'] == 'ACCEPTABLE') & 
+    (df2['Enrichment'] == 'ACCEPTABLE')) |
+    ((df2['Library_complexity'] == 'ACCEPTABLE') &
+    (df2['IDR'] == 'ACCEPTABLE') & 
+    (df2['Fingerprint'] == 'ACCEPTABLE'))|
+    ((df2['Library_complexity'] == 'ACCEPTABLE') &
+    (df2['Enrichment'] == 'ACCEPTABLE') & 
+    (df2['Fingerprint'] == 'ACCEPTABLE')) |
+    ((df2['IDR'] == 'ACCEPTABLE') &
+    (df2['Enrichment'] == 'ACCEPTABLE') & 
+    (df2['Fingerprint'] == 'ACCEPTABLE')), 'GOOD', 'BAD')
     
-
     return df2
 
 
