@@ -13,21 +13,15 @@ def map_new_celltype(df_map, df_newct):
     dict_ct = dict(zip(df_newct['sample_ontology_term'], df_newct['final'].str.lower()))
     #mapping new cell_types
     df_map['cell_type'] = df_map['sample_ontology_term'].map(dict_ct)
-    df_map.to_csv('../script_add_keys_harmonizedv8ihec_json/ihec_metadata_plusv9_UPDATED_newCT.csv', index=False)
+    # df_map.to_csv('../script_add_keys_harmonizedv8ihec_json/ihec_metadata_dfreeze_wgbs_plusv9_UPDATED_newCT.csv', index=False)
+    df_map.to_csv('ihec_metadata_dfreeze_wgbs_plusv9_UPDATED_newCT.csv', index=False)
 
 
-def map_dict_bio(df_epi_ihec, list_of_dict):
+def map_dict_bio(df_epi_ihec, list_col, list_of_dict):
     """Receives a df and a list of dict. Returns
     the desired fields (cols) with updated metadata
     info"""
 
-    list_col = ['EpiRR', 'EpiRR_status', 'age',
-       'biomaterial_type', 'cell_type', 'donor_age_unit', 'donor_id',
-       'donor_life_stage', 'health_state', 'line', 'markers', 'project',
-       'sample_ontology_curie', 'sex', 'tissue_type', 'donor_health_status',
-       'donor_health_status_ontology_curie', 'disease',
-       'disease_ontology_curie', 'ontology', 'sample_ontology_term', 'intermediate order (unique)',
-       'high order (unique)', 'intermediate order', 'high order']
 
     df_final = df_epi_ihec.copy()
 
@@ -35,22 +29,16 @@ def map_dict_bio(df_epi_ihec, list_of_dict):
 
         df_final[col] = df_final['epirr_id'].map(dict_i).fillna(df_final[col])
 
-    # df_final.to_csv('../script_add_keys_harmonizedv8ihec_json/ihec_metadata_plusv9_UPDATED.csv', index=False)
-    
+    # df_final.to_csv('../script_add_keys_harmonizedv8ihec_json/ihec_metadata_dfreeze_wgbs_plusv9_UPDATED.csv', index=False)
+    df_final.to_csv('ihec_metadata_dfreeze_wgbs_plusv9_UPDATED.csv', index=False)
+
     return df_final
 
 
-def generate_dict(df_merge):
-    """Reeives a df and returns
+def generate_dict(df_merge, list_col):
+    """Receives a df and returns
     a list of dicts."""
 
-    list_col = ['EpiRR', 'EpiRR_status', 'age',
-       'biomaterial_type', 'cell_type', 'donor_age_unit', 'donor_id',
-       'donor_life_stage', 'health_state', 'line', 'markers', 'project',
-       'sample_ontology_curie', 'sex', 'tissue_type', 'donor_health_status',
-       'donor_health_status_ontology_curie', 'disease',
-       'disease_ontology_curie', 'ontology', 'sample_ontology_term', 'intermediate order (unique)',
-       'high order (unique)', 'intermediate order', 'high order']
 
     list_of_dict = []
 
@@ -80,7 +68,6 @@ def create_dict_bio(df_epi_ihec, df_ihec):
     df_merge = df_merge.rename(columns={col:col.split('_y')[0] for col in df_merge.columns})
     df_merge = df_merge.loc[:, ~df_merge.columns.str.contains('_x')]
 
-
     #saving to check
     # df_merge.to_csv('../script_add_keys_harmonizedv8ihec_json/ihec_metadata_plusv8_525_biomaterial_updated.csv', index=False)
 
@@ -95,15 +82,26 @@ def filter_epirr_to_update(df_epi_ihec):
     return df_epi_ihec[df_epi_ihec['biomaterial_type'].isnull()] #column completly filled in v8
 
 
+def merge_version_metadata(df_epiatlas, df_ihec):
+
+    df_epi_ihec = df_epiatlas.merge(df_ihec, how='left', left_on='epirr_id', right_on='EpiRR')
+    df_epi_ihec.to_csv('ihec_metadata_dfreze_wgbs_plusv9.csv', index=False)
+
+    return df_epi_ihec
+
+
+
 def main():
 
     df_epiatlas = pd.read_csv(sys.argv[1]) #3074 #ihec metadata
     df_ihec = pd.read_csv(sys.argv[2]) #2655 (v8) #update to use v9
-    df_epi_ihec = pd.read_csv(sys.argv[3]) #epiatlas + v8 info (run first merge_ihec_metadata_v8)
-    df_newct = pd.read_csv(sys.argv[4]) #df including old sample_ontology_terms and final col (new celltypes)
+    list_col = list(df_ihec.columns)
+    # df_epi_ihec = pd.read_csv(sys.argv[3]) #epiatlas + v8 info (run first merge_ihec_metadata_v8)
+    df_epi_ihec = merge_version_metadata(df_epiatlas, df_ihec)
+    df_newct = pd.read_csv(sys.argv[3]) #df including old sample_ontology_terms and final col (new celltypes)
     df_merge = create_dict_bio(df_epi_ihec, df_ihec)
-    list_of_dict = generate_dict(df_merge)
-    df_map = map_dict_bio(df_epi_ihec, list_of_dict)
+    list_of_dict = generate_dict(df_merge, list_col)
+    df_map = map_dict_bio(df_epi_ihec, list_col ,list_of_dict)
 
     map_new_celltype(df_map, df_newct)
     # print("Updated csv saved!")
